@@ -10,6 +10,7 @@ from torch.nn.parameter import Parameter
 from utils.masking import LocalMask
 #from layers.mwt import MWT_CZ1d
 
+
 def get_dynamic_modes(seq_len, modes):
     rate1 = seq_len // 96
     if rate1 <= 1:
@@ -31,7 +32,7 @@ def get_dynamic_modes(seq_len, modes):
 
 # Cross Fourier Former
 class SpectralConvCross1d(nn.Module):
-    def __init__(self, in_channels, out_channels, seq_len_q, seq_len_kv, modes1=0,policy=0):
+    def __init__(self, in_channels, out_channels, seq_len_q, seq_len_kv, modes1=0, policy=0):
         super(SpectralConvCross1d, self).__init__()
         print('corss fourier correlation used!')
 

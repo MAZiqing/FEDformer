@@ -24,6 +24,8 @@ parser.add_argument('--version', type=str, default='Fourier',
 parser.add_argument('--mode_select', type=str, default='random',
                     help='for FEDformer, there are two mode selection method, options: [random, low]')
 parser.add_argument('--modes', type=int, default=64, help='modes to be selected random 64')
+parser.add_argument('--L', type=int, default=3, help='ignore level')
+parser.add_argument('--base', type=str, default='legendre',help='mwt base')
 
 # data loader
 parser.add_argument('--data', type=str, default='ETTh1', help='dataset type')
@@ -42,8 +44,6 @@ parser.add_argument('--checkpoints', type=str, default='./checkpoints/', help='l
 parser.add_argument('--seq_len', type=int, default=96, help='input sequence length')
 parser.add_argument('--label_len', type=int, default=48, help='start token length')
 parser.add_argument('--pred_len', type=int, default=96, help='prediction sequence length')
-parser.add_argument('--L', type=int, default=3, help='ignore level')
-parser.add_argument('--base', type=str, default='legendre',help='mwt base')
 parser.add_argument('--cross_activation', type=str, default='tanh', help='mwt cross atention activation function tanh or softmax')
 
 # model define

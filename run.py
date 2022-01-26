@@ -25,7 +25,7 @@ parser.add_argument('--mode_select', type=str, default='random',
                     help='for FEDformer, there are two mode selection method, options: [random, low]')
 parser.add_argument('--modes', type=int, default=64, help='modes to be selected random 64')
 parser.add_argument('--L', type=int, default=3, help='ignore level')
-parser.add_argument('--base', type=str, default='legendre',help='mwt base')
+parser.add_argument('--base', type=str, default='legendre', help='mwt base')
 
 # data loader
 parser.add_argument('--data', type=str, default='ETTh1', help='dataset type')
@@ -55,7 +55,7 @@ parser.add_argument('--n_heads', type=int, default=8, help='num of heads')
 parser.add_argument('--e_layers', type=int, default=2, help='num of encoder layers')
 parser.add_argument('--d_layers', type=int, default=1, help='num of decoder layers')
 parser.add_argument('--d_ff', type=int, default=2048, help='dimension of fcn')
-parser.add_argument('--moving_avg',default=[24], help='window size of moving average')
+parser.add_argument('--moving_avg', default=[24], help='window size of moving average')
 parser.add_argument('--factor', type=int, default=1, help='attn factor')
 parser.add_argument('--distil', action='store_false',
                     help='whether to use distilling in encoder, using this argument means not using distilling',

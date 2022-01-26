@@ -74,10 +74,10 @@ class series_decomp_multi(nn.Module):
     """
     Series decomposition block
     """
-    def __init__(self,kernel_size):
+    def __init__(self, kernel_size):
         super(series_decomp_multi, self).__init__()
         self.moving_avg = [moving_avg(kernel, stride=1) for kernel in kernel_size]
-        self.layer = torch.nn.Linear(1,len(kernel_size))
+        self.layer = torch.nn.Linear(1, len(kernel_size))
 
     def forward(self, x):
         moving_mean=[]
@@ -108,12 +108,13 @@ class EncoderLayer(nn.Module):
         self.attention = attention
         self.conv1 = nn.Conv1d(in_channels=d_model, out_channels=d_ff, kernel_size=1, bias=False)
         self.conv2 = nn.Conv1d(in_channels=d_ff, out_channels=d_model, kernel_size=1, bias=False)
-        #self.decomp1 = series_decomp(moving_avg)
-        #self.decomp2 = series_decomp(moving_avg)
-        self.decomp1 = series_decomp_multi(moving_avg)
-        self.decomp2 = series_decomp_multi(moving_avg)
+        self.decomp1 = series_decomp(moving_avg)
+        self.decomp2 = series_decomp(moving_avg)
+        # self.decomp1 = series_decomp_multi(moving_avg)
+        # self.decomp2 = series_decomp_multi(moving_avg)
         self.dropout = nn.Dropout(dropout)
         self.activation = F.relu if activation == "relu" else F.gelu
+
     def forward(self, x, attn_mask=None):
         new_x, attn = self.attention(
             x, x, x,
@@ -173,12 +174,12 @@ class DecoderLayer(nn.Module):
         #self.cross_attention2 = FullAttention
         self.conv1 = nn.Conv1d(in_channels=d_model, out_channels=d_ff, kernel_size=1, bias=False)
         self.conv2 = nn.Conv1d(in_channels=d_ff, out_channels=d_model, kernel_size=1, bias=False)
-        # self.decomp1 = series_decomp(moving_avg)
-        # self.decomp2 = series_decomp(moving_avg)
-        # self.decomp3 = series_decomp(moving_avg)
-        self.decomp1 = series_decomp_multi(moving_avg)
-        self.decomp2 = series_decomp_multi(moving_avg)
-        self.decomp3 = series_decomp_multi(moving_avg)
+        self.decomp1 = series_decomp(moving_avg)
+        self.decomp2 = series_decomp(moving_avg)
+        self.decomp3 = series_decomp(moving_avg)
+        # self.decomp1 = series_decomp_multi(moving_avg)
+        # self.decomp2 = series_decomp_multi(moving_avg)
+        # self.decomp3 = series_decomp_multi(moving_avg)
         self.dropout = nn.Dropout(dropout)
         self.projection = nn.Conv1d(in_channels=d_model, out_channels=c_out, kernel_size=3, stride=1, padding=1,
                                     padding_mode='circular', bias=False)

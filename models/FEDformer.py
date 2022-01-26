@@ -3,15 +3,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 from layers.Embed import DataEmbedding, DataEmbedding_wo_pos
 from layers.AutoCorrelation import AutoCorrelation, AutoCorrelationLayer
-from layers.FourierCorrelation import SpectralConv1d, SpectralConvCross1d,SpectralConv1d_local,SpectralConvCross1d_local
+from layers.FourierCorrelation import FourierBlock, FourierCrossAttention
 from layers.mwt import MWT_CZ1d_cross, mwt_transform
 from layers.SelfAttention_Family import FullAttention, ProbAttention
-from layers.Autoformer_EncDec import Encoder, Decoder, EncoderLayer, DecoderLayer, my_Layernorm, series_decomp,series_decomp_multi
+from layers.Autoformer_EncDec import Encoder, Decoder, EncoderLayer, DecoderLayer, my_Layernorm, series_decomp, series_decomp_multi
 import math
 import numpy as np
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 class Model(nn.Module):
     """
@@ -29,7 +30,8 @@ class Model(nn.Module):
 
         # Decomp
         kernel_size = configs.moving_avg
-        self.decomp = series_decomp_multi(kernel_size)
+        self.decomp = series_decomp(kernel_size)
+        # self.decomp = series_decomp_multi(kernel_size)
 
         # Embedding
         # The series-wise connection inherently contains the sequential information.
@@ -42,15 +44,31 @@ class Model(nn.Module):
         if configs.version == 'Wavelets':
             encoder_self_att = mwt_transform(ich=configs.d_model, L=configs.L, base=configs.base)
             decoder_self_att = mwt_transform(ich=configs.d_model, L=configs.L, base=configs.base)
-            decoder_cross_att = MWT_CZ1d_cross(in_channels=configs.d_model, out_channels=configs.d_model,
-                                               seq_len_q=self.seq_len // 2 + self.pred_len, seq_len_kv=self.seq_len,
-                                               modes1=configs.modes1, ich=configs.d_model, base=configs.base,
+            decoder_cross_att = MWT_CZ1d_cross(in_channels=configs.d_model,
+                                               out_channels=configs.d_model,
+                                               seq_len_q=self.seq_len // 2 + self.pred_len,
+                                               seq_len_kv=self.seq_len,
+                                               modes=configs.modes,
+                                               ich=configs.d_model,
+                                               base=configs.base,
                                                activation=configs.cross_activation)
         else:
-            encoder_self_att = SpectralConv1d(in_channels=configs.d_model, out_channels=configs.d_model, seq_len=self.seq_len, modes1=configs.modes1)
-            decoder_self_att = SpectralConv1d(in_channels=configs.d_model, out_channels=configs.d_model, seq_len=self.seq_len//2+self.pred_len, modes1=configs.modes1)
-            decoder_cross_att = SpectralConvCross1d(in_channels=configs.d_model, out_channels=configs.d_model,
-                                                    seq_len_q=self.seq_len//2+self.pred_len, seq_len_kv=self.seq_len, modes1=configs.modes1)
+            encoder_self_att = FourierBlock(in_channels=configs.d_model,
+                                            out_channels=configs.d_model,
+                                            seq_len=self.seq_len,
+                                            modes=configs.modes,
+                                            mode_select_method=configs.mode_select)
+            decoder_self_att = FourierBlock(in_channels=configs.d_model,
+                                            out_channels=configs.d_model,
+                                            seq_len=self.seq_len//2+self.pred_len,
+                                            modes=configs.modes,
+                                            mode_select_method=configs.mode_select)
+            decoder_cross_att = FourierCrossAttention(in_channels=configs.d_model,
+                                                      out_channels=configs.d_model,
+                                                      seq_len_q=self.seq_len//2+self.pred_len,
+                                                      seq_len_kv=self.seq_len,
+                                                      modes=configs.modes,
+                                                      mode_select_method=configs.mode_select)
         # Encoder
         # enc_modes = int(max(configs.modes, configs.seq_len//6))
         enc_modes = int(min(configs.modes, configs.seq_len//2))
@@ -124,7 +142,9 @@ class Model(nn.Module):
 if __name__ == '__main__':
     class Configs(object):
         ab = 0
-        modes1 = 100
+        modes = 32
+        mode_select = 'random'
+        version = 'Fourier',
         seq_len = 96
         label_len = 48
         pred_len = 720
@@ -153,4 +173,5 @@ if __name__ == '__main__':
 
     dec = torch.randn([3, configs.seq_len//2+configs.pred_len, 7])
     dec_mark = torch.randn([3, configs.seq_len//2+configs.pred_len, 4])
-    model.forward(enc, enc_mark, dec, dec_mark)
+    out = model.forward(enc, enc_mark, dec, dec_mark)
+    print(out)

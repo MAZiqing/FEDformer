@@ -717,12 +717,12 @@ def exists(val):
 
 
 class MWT_CZ1d_cross(nn.Module):
-    def __init__(self,in_channels,out_channels,seq_len_q,seq_len_kv,modes1,c=64,
-                 k = 8,ich=512,
+    def __init__(self, in_channels, out_channels, seq_len_q, seq_len_kv, modes, c=64,
+                 k = 8, ich=512,
                  L = 0,
                  base = 'legendre',
-                 initializer = get_initializer('xavier_normal'),activation='tanh',
-                 
+                 initializer = get_initializer('xavier_normal'), activation='tanh',
+
                  **kwargs):
         super(MWT_CZ1d_cross, self).__init__()
         print('base',base)
@@ -745,10 +745,10 @@ class MWT_CZ1d_cross(nn.Module):
        
         #self.pre = sparseKernelFT1d_pre(alpha)
         
-        self.attn1 = SpectralCross1d(in_channels=in_channels, out_channels=out_channels,seq_len_q=seq_len_q, seq_len_kv=seq_len_kv, modes1=modes1,activation=activation)
-        self.attn2 = SpectralCross1d(in_channels=in_channels, out_channels=out_channels,seq_len_q=seq_len_q, seq_len_kv=seq_len_kv, modes1=modes1,activation=activation)
-        self.attn3 = SpectralCross1d(in_channels=in_channels, out_channels=out_channels,seq_len_q=seq_len_q, seq_len_kv=seq_len_kv, modes1=modes1,activation=activation)
-        self.attn4 = SpectralCross1d(in_channels=in_channels, out_channels=out_channels,seq_len_q=seq_len_q, seq_len_kv=seq_len_kv, modes1=modes1,activation=activation)
+        self.attn1 = SpectralCross1d(in_channels=in_channels, out_channels=out_channels, seq_len_q=seq_len_q, seq_len_kv=seq_len_kv, modes1=modes, activation=activation)
+        self.attn2 = SpectralCross1d(in_channels=in_channels, out_channels=out_channels, seq_len_q=seq_len_q, seq_len_kv=seq_len_kv, modes1=modes, activation=activation)
+        self.attn3 = SpectralCross1d(in_channels=in_channels, out_channels=out_channels, seq_len_q=seq_len_q, seq_len_kv=seq_len_kv, modes1=modes, activation=activation)
+        self.attn4 = SpectralCross1d(in_channels=in_channels, out_channels=out_channels, seq_len_q=seq_len_q, seq_len_kv=seq_len_kv, modes1=modes, activation=activation)
        
         self.T0 = nn.Linear(k, k)
 
@@ -766,7 +766,7 @@ class MWT_CZ1d_cross(nn.Module):
         self.Lq = nn.Linear(ich, c*k)
         self.Lv = nn.Linear(ich, c*k)
         self.out = nn.Linear(c*k,ich)
-        self.modes1=modes1   
+        self.modes1=modes
         
     def forward(self,q,k,v,mask=None):
         B, N,H,E = q.shape # (B, N, k)

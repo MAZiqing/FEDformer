@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import math
 from layers.SelfAttention_Family import FullAttention
 
+
 class my_Layernorm(nn.Module):
     """
     Special designed layernorm for the seasonal part
@@ -18,24 +19,6 @@ class my_Layernorm(nn.Module):
         return x_hat - bias
 
 
-# class moving_avg(nn.Module):
-#     """
-#     Moving average block to highlight the trend of time series
-#     """
-#     def __init__(self, kernel_size, stride):
-#         super(moving_avg, self).__init__()
-#         self.kernel_size = kernel_size
-#         self.avg = nn.AvgPool1d(kernel_size=kernel_size, stride=stride, padding=0)
-
-#     def forward(self, x):
-#         print('self kernel size',self.kernel_size)
-#         # padding on the both ends of time series
-#         front = x[:, 0:1, :].repeat(1, (self.kernel_size - 1) // 2, 1)
-#         end = x[:, -1:, :].repeat(1, (self.kernel_size - 1) // 2, 1)
-#         x = torch.cat([front, x, end], dim=1)
-#         x = self.avg(x.permute(0, 2, 1))
-#         x = x.permute(0, 2, 1)
-#         return x
 class moving_avg(nn.Module):
     """
     Moving average block to highlight the trend of time series
@@ -44,7 +27,6 @@ class moving_avg(nn.Module):
         super(moving_avg, self).__init__()
         self.kernel_size = kernel_size
         self.avg = nn.AvgPool1d(kernel_size=kernel_size, stride=stride, padding=0)
-        #self.avg = nn.Conv1d(kernel_size)
 
     def forward(self, x):
         # padding on the both ends of time series
@@ -54,7 +36,6 @@ class moving_avg(nn.Module):
         x = self.avg(x.permute(0, 2, 1))
         x = x.permute(0, 2, 1)
         return x
-
 
 
 class series_decomp(nn.Module):
@@ -69,6 +50,7 @@ class series_decomp(nn.Module):
         moving_mean = self.moving_avg(x)
         res = x - moving_mean
         return res, moving_mean
+
 
 class series_decomp_multi(nn.Module):
     """
@@ -89,6 +71,7 @@ class series_decomp_multi(nn.Module):
         res = x - moving_mean
         return res, moving_mean 
 
+
 class FourierDecomp(nn.Module):
     def __init__(self):
         super(FourierDecomp, self).__init__()
@@ -108,10 +91,14 @@ class EncoderLayer(nn.Module):
         self.attention = attention
         self.conv1 = nn.Conv1d(in_channels=d_model, out_channels=d_ff, kernel_size=1, bias=False)
         self.conv2 = nn.Conv1d(in_channels=d_ff, out_channels=d_model, kernel_size=1, bias=False)
-        self.decomp1 = series_decomp(moving_avg)
-        self.decomp2 = series_decomp(moving_avg)
-        # self.decomp1 = series_decomp_multi(moving_avg)
-        # self.decomp2 = series_decomp_multi(moving_avg)
+
+        if isinstance(moving_avg, list):
+            self.decomp1 = series_decomp_multi(moving_avg)
+            self.decomp2 = series_decomp_multi(moving_avg)
+        else:
+            self.decomp1 = series_decomp(moving_avg)
+            self.decomp2 = series_decomp(moving_avg)
+
         self.dropout = nn.Dropout(dropout)
         self.activation = F.relu if activation == "relu" else F.gelu
 
@@ -121,8 +108,6 @@ class EncoderLayer(nn.Module):
             attn_mask=attn_mask
         )
         x = x + self.dropout(new_x)
-        #x = new_x
-        #x = new_x
         x, _ = self.decomp1(x)
         y = x
         y = self.dropout(self.activation(self.conv1(y.transpose(-1, 1))))
@@ -171,15 +156,18 @@ class DecoderLayer(nn.Module):
         d_ff = d_ff or 4 * d_model
         self.self_attention = self_attention
         self.cross_attention = cross_attention
-        #self.cross_attention2 = FullAttention
         self.conv1 = nn.Conv1d(in_channels=d_model, out_channels=d_ff, kernel_size=1, bias=False)
         self.conv2 = nn.Conv1d(in_channels=d_ff, out_channels=d_model, kernel_size=1, bias=False)
-        self.decomp1 = series_decomp(moving_avg)
-        self.decomp2 = series_decomp(moving_avg)
-        self.decomp3 = series_decomp(moving_avg)
-        # self.decomp1 = series_decomp_multi(moving_avg)
-        # self.decomp2 = series_decomp_multi(moving_avg)
-        # self.decomp3 = series_decomp_multi(moving_avg)
+
+        if isinstance(moving_avg, list):
+            self.decomp1 = series_decomp_multi(moving_avg)
+            self.decomp2 = series_decomp_multi(moving_avg)
+            self.decomp3 = series_decomp_multi(moving_avg)
+        else:
+            self.decomp1 = series_decomp(moving_avg)
+            self.decomp2 = series_decomp(moving_avg)
+            self.decomp3 = series_decomp(moving_avg)
+
         self.dropout = nn.Dropout(dropout)
         self.projection = nn.Conv1d(in_channels=d_model, out_channels=c_out, kernel_size=3, stride=1, padding=1,
                                     padding_mode='circular', bias=False)
@@ -190,21 +178,13 @@ class DecoderLayer(nn.Module):
             x, x, x,
             attn_mask=x_mask
         )[0])
-#         x = self.self_attention(
-#             x, x, x,
-#             attn_mask=x_mask
-#         )[0]
 
         x, trend1 = self.decomp1(x)
         x = x + self.dropout(self.cross_attention(
             x, cross, cross,
             attn_mask=cross_mask
         )[0])
-        
-#         x = self.cross_attention(
-#             x, cross, cross,
-#             attn_mask=cross_mask
-#         )[0]      
+
         x, trend2 = self.decomp2(x)
         y = x
         y = self.dropout(self.activation(self.conv1(y.transpose(-1, 1))))
@@ -229,9 +209,6 @@ class Decoder(nn.Module):
     def forward(self, x, cross, x_mask=None, cross_mask=None, trend=None):
         for layer in self.layers:
             x, residual_trend = layer(x, cross, x_mask=x_mask, cross_mask=cross_mask)
-            #print('trend shape',trend.shape)
-            #print('residual_trend shape',residual_trend.shape)
-            #trend = trend[:,:residual_trend.shape[1],:]
             trend = trend + residual_trend
 
         if self.norm is not None:

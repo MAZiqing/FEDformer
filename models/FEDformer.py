@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from layers.Embed import DataEmbedding, DataEmbedding_wo_pos
 from layers.AutoCorrelation import AutoCorrelation, AutoCorrelationLayer
 from layers.FourierCorrelation import FourierBlock, FourierCrossAttention
-from layers.mwt import MWT_CZ1d_cross, mwt_transform
+from layers.MultiWaveletCorrelation import MWT_CZ1d_cross, mwt_transform
 from layers.SelfAttention_Family import FullAttention, ProbAttention
 from layers.Autoformer_EncDec import Encoder, Decoder, EncoderLayer, DecoderLayer, my_Layernorm, series_decomp, series_decomp_multi
 import math
@@ -16,7 +16,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Model(nn.Module):
     """
-    FEDfromer project the attention in frequency domain and achieved O(N) complexity
+    FEDformer projects the attention in frequency domain and achieved O(N) complexity
     """
     def __init__(self, configs):
         super(Model, self).__init__()
@@ -30,8 +30,10 @@ class Model(nn.Module):
 
         # Decomp
         kernel_size = configs.moving_avg
-        self.decomp = series_decomp(kernel_size)
-        # self.decomp = series_decomp_multi(kernel_size)
+        if isinstance(kernel_size, list):
+            self.decomp = series_decomp_multi(kernel_size)
+        else:
+            self.decomp = series_decomp(kernel_size)
 
         # Embedding
         # The series-wise connection inherently contains the sequential information.
@@ -70,11 +72,10 @@ class Model(nn.Module):
                                                       modes=configs.modes,
                                                       mode_select_method=configs.mode_select)
         # Encoder
-        # enc_modes = int(max(configs.modes, configs.seq_len//6))
         enc_modes = int(min(configs.modes, configs.seq_len//2))
         dec_modes = int(min(configs.modes, (configs.seq_len//2+configs.pred_len)//2))
-        # dec_modes = int(max(configs.modes, (configs.seq_len//2+configs.pred_len)//2))
         print('enc_modes: {}, dec_modes: {}'.format(enc_modes, dec_modes))
+
         self.encoder = Encoder(
             [
                 EncoderLayer(
@@ -144,7 +145,12 @@ if __name__ == '__main__':
         ab = 0
         modes = 32
         mode_select = 'random'
-        version = 'Fourier',
+        # version = 'Fourier'
+        version = 'Wavelets'
+        moving_avg = [12, 24]
+        L = 1
+        base = 'legendre'
+        cross_activation = 'tanh'
         seq_len = 96
         label_len = 48
         pred_len = 720
@@ -160,7 +166,6 @@ if __name__ == '__main__':
         d_ff = 16
         e_layers = 2
         d_layers = 1
-        moving_avg = 25
         c_out = 7
         activation = 'gelu'
         wavelet = 0

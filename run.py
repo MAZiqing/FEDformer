@@ -26,6 +26,9 @@ parser.add_argument('--mode_select', type=str, default='random',
 parser.add_argument('--modes', type=int, default=64, help='modes to be selected random 64')
 parser.add_argument('--L', type=int, default=3, help='ignore level')
 parser.add_argument('--base', type=str, default='legendre', help='mwt base')
+parser.add_argument('--cross_activation', type=str, default='tanh',
+                    help='mwt cross atention activation function tanh or softmax')
+
 
 # data loader
 parser.add_argument('--data', type=str, default='ETTh1', help='dataset type')
@@ -44,7 +47,8 @@ parser.add_argument('--checkpoints', type=str, default='./checkpoints/', help='l
 parser.add_argument('--seq_len', type=int, default=96, help='input sequence length')
 parser.add_argument('--label_len', type=int, default=48, help='start token length')
 parser.add_argument('--pred_len', type=int, default=96, help='prediction sequence length')
-parser.add_argument('--cross_activation', type=str, default='tanh', help='mwt cross atention activation function tanh or softmax')
+parser.add_argument('--cross_activation', type=str, default='tanh',
+                    help='mwt cross atention activation function tanh or softmax')
 
 # model define
 parser.add_argument('--enc_in', type=int, default=7, help='encoder input size')

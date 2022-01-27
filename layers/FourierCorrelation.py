@@ -22,7 +22,7 @@ def get_frequency_modes(seq_len, modes=64, mode_select_method='random'):
     return index
 
 
-# ##########  1d fourier layer #############
+# ########## fourier layer #############
 class FourierBlock(nn.Module):
     def __init__(self, in_channels, out_channels, seq_len, modes=0, mode_select_method='random'):
         super(FourierBlock, self).__init__()
@@ -90,13 +90,15 @@ class FourierBlock(nn.Module):
 
 # ########## Cross Fourier Former ####################
 class FourierCrossAttention(nn.Module):
-    def __init__(self, in_channels, out_channels, seq_len_q, seq_len_kv, modes=64, mode_select_method='random', policy=0):
+    def __init__(self, in_channels, out_channels, seq_len_q, seq_len_kv, modes=64, mode_select_method='random',
+                 activation='tanh', policy=0):
         super(FourierCrossAttention, self).__init__()
         print(' fourier enhanced cross attention used!')
 
         """
         1D Fourier layer. It does FFT, linear transform, and Inverse FFT.    
         """
+        self.activation = activation
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.index_q = get_frequency_modes(seq_len_q, modes=modes, mode_select_method=mode_select_method)
@@ -123,8 +125,7 @@ class FourierCrossAttention(nn.Module):
         xv = v.permute(0, 2, 3, 1)
 
         # Compute Fourier coeffcients up to factor of e^(- something constant)
-        #xq_ft_ = torch.zeros(B, H, E, len(self.index_q), device=xq.device, dtype=torch.cfloat)
-        xq_ft_ = torch.zeros(B, H, E, len(self.index_q), device=xq.device, dtype=torch.cfloat)
+        xq_ft_ = torch.zeros(B, H, E, len(self.index_q)+1, device=xq.device, dtype=torch.cfloat)
         xq_ft = torch.fft.rfft(xq, dim=-1)
         for i, j in enumerate(self.index_q):
             xq_ft_[:, :, :, i] = xq_ft[:, :, :, j]
@@ -135,20 +136,22 @@ class FourierCrossAttention(nn.Module):
             xk_ft_[:, :, :, i] = xk_ft[:, :, :, j]
 
         xqk_ft = (torch.einsum("bhex,bhey->bhxy", xq_ft_, xk_ft_))
-        xqk_ft = xqk_ft.tanh()
-        #xqk_ft = torch.softmax(abs(xqk_ft),dim=-1)
-        #xqk_ft = torch.complex(xqk_ft,torch.zeros_like(xqk_ft))
+        if self.activation == 'tanh':
+            xqk_ft = xqk_ft.tanh()
+        elif self.activation == 'softmax':
+            xqk_ft = torch.softmax(abs(xqk_ft), dim=-1)
+            xqk_ft = torch.complex(xqk_ft, torch.zeros_like(xqk_ft))
+        else:
+            raise Exception('{} actiation function is not implemented'.format(self.activation))
+
         xqkv_ft = torch.einsum("bhxy,bhey->bhex", xqk_ft, xk_ft_)
         xqkvw = torch.einsum("bhex,heox->bhox", xqkv_ft, self.weights1)
         out_ft = torch.zeros(B, H, E, L // 2 + 1, device=xq.device, dtype=torch.cfloat)
-        #out_ft = torch.zeros(B, H, E, len(self.index_q), device=xq.device, dtype=torch.cfloat)
         for i, j in enumerate(self.index_q):
             out_ft[:, :, :, j] = xqkvw[:, :, :, i]
-        #max_len = min(xq.size(-1),720)
         out = torch.fft.irfft(out_ft / self.in_channels / self.out_channels, n=xq.size(-1))
-        #raise Exception('aaa')
         # size = [B, L, H, E]
-        #out = torch.fft.irfft(out_ft / self.in_channels / self.out_channels, n=max_len)
+
         return (out, None)
     
 

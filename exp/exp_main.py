@@ -1,6 +1,6 @@
 from data_provider.data_factory import data_provider
 from exp.exp_basic import Exp_Basic
-from models import Informer, FEDformer, Transformer
+from models import FEDformer, Autoformer, Informer, Transformer
 from utils.tools import EarlyStopping, adjust_learning_rate, visual
 from utils.metrics import metric
 
@@ -26,13 +26,14 @@ class Exp_Main(Exp_Basic):
 
     def _build_model(self):
         model_dict = {
-            'Autoformer': FEDformer,
+            'FEDformer': FEDformer,
+            'Autoformer': Autoformer,
             'Transformer': Transformer,
             'Informer': Informer,
-            'Reformer': Reformer,
-            'Logformer': Logformer,
-            'Transformer_sin':Transformer_sin,
-            'Autoformer_sin':Autoformer_sin,
+            # 'Reformer': Reformer,
+            # 'Logformer': Logformer,
+            # 'Transformer_sin':Transformer_sin,
+            # 'Autoformer_sin':Autoformer_sin,
         }
         model = model_dict[self.args.model].Model(self.args).float()
 

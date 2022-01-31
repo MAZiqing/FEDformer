@@ -7,7 +7,7 @@ import numpy as np
 import math
 from math import sqrt
 import os
-from pytorch_wavelets import DWTForward, DWTInverse, DWT1DForward, DWT1DInverse
+# from pytorch_wavelets import DWTForward, DWTInverse, DWT1DForward, DWT1DInverse
 from torch.nn.functional import interpolate
 
 
@@ -38,12 +38,12 @@ class AutoCorrelation(nn.Module):
         self.dropout = nn.Dropout(attention_dropout)
         self.agg = None
         self.use_wavelet = configs.wavelet
-        if self.use_wavelet:
-            J = 3
-            self.dwt1d = DWT1DForward(J=J, wave='db4')
-            self.dwt1div = DWT1DInverse(wave='db4')
-            self.j_list = [1, 2, 4, 8, 8]
-            print('DWTCorrelation used, J={}, j_list={}'.format(J, self.j_list))
+        # if self.use_wavelet:
+        #     J = 3
+        #     self.dwt1d = DWT1DForward(J=J, wave='db4')
+        #     self.dwt1div = DWT1DInverse(wave='db4')
+        #     self.j_list = [1, 2, 4, 8, 8]
+        #     print('DWTCorrelation used, J={}, j_list={}'.format(J, self.j_list))
 
     # @decor_time
     def time_delay_agg_mzq(self, values, corr):

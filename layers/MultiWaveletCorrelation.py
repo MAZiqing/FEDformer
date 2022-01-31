@@ -15,7 +15,7 @@ from utils.masking import LocalMask
 from layers.utils import get_filter
 
 
-from layers.FourierCorrelation import FourierBlock, FourierCrossAttention
+# from layers.FourierCorrelation import FourierBlock, # FourierCrossAttention
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -60,10 +60,10 @@ class mwt_transform(nn.Module):
         return (V.contiguous(), None)
 
 
-class FourierCrossAttention1(nn.Module):
+class FourierCrossAttentionW(nn.Module):
     def __init__(self, in_channels, out_channels, seq_len_q, seq_len_kv, modes=16, activation='tanh',
                  mode_select_method='random'):
-        super(FourierCrossAttention1, self).__init__()
+        super(FourierCrossAttentionW, self).__init__()
         print('corss fourier correlation used!')
 
         """
@@ -74,51 +74,6 @@ class FourierCrossAttention1(nn.Module):
         #         self.modes1 = seq_len // 2
         self.modes1 = modes
         self.activation = activation
-
-        if modes > 10000:
-            modes2 = modes - 10000
-            self.index_q0 = list(range(0, min(seq_len_q // 4, modes2 // 2)))
-            self.index_q1 = list(range(len(self.index_q0), seq_len_q // 2))
-            np.random.shuffle(self.index_q1)
-            self.index_q1 = self.index_q1[:min(seq_len_q // 4, modes2 // 2)]
-            self.index_q = self.index_q0 + self.index_q1
-            self.index_q.sort()
-
-            self.index_k_v0 = list(range(0, min(seq_len_kv // 4, modes2 // 2)))
-            self.index_k_v1 = list(range(len(self.index_k_v0), seq_len_kv // 2))
-            np.random.shuffle(self.index_k_v1)
-            self.index_k_v1 = self.index_k_v1[:min(seq_len_kv // 4, modes2 // 2)]
-            self.index_k_v = self.index_k_v0 + self.index_k_v1
-            self.index_k_v.sort()
-
-        # elif modes > 1000:
-        #     modes2 = modes - 1000
-        #     self.index_q = list(range(0, seq_len_q // 2))
-        #     np.random.shuffle(self.index_q)
-        #     self.index_q = self.index_q[:modes2]
-        #     self.index_q.sort()
-        #     self.index_k_v = list(range(0, seq_len_kv // 2))
-        #     np.random.shuffle(self.index_k_v)
-        #     self.index_k_v = self.index_k_v[:modes2]
-        #     self.index_k_v.sort()
-        # elif modes < 0:
-        #     modes2 = abs(modes)
-        #     self.index_q = get_dynamic_modes(seq_len_q, modes2)
-        #     self.index_k_v = list(range(0, min(seq_len_kv // 2, modes2)))
-        # else:
-        #     self.index_q = list(range(0, min(seq_len_q // 2, modes)))
-        #     self.index_k_v = list(range(0, min(seq_len_kv // 2, modes)))
-
-        print('index_q={}'.format(self.index_q))
-        print('len mode q={}', len(self.index_q))
-        print('index_k_v={}'.format(self.index_k_v))
-        print('len mode kv={}', len(self.index_k_v))
-
-        self.register_buffer('index_q2', torch.tensor(self.index_q))
-
-    #         self.scale = (1 / (in_channels * out_channels))
-    #         self.weights1 = nn.Parameter(
-    #             self.scale * torch.rand(8, in_channels // 8, out_channels // 8, len(self.index_q), dtype=torch.cfloat))
 
     def forward(self, q, k, v, mask):
         # size = [B, L, H, E]
@@ -177,81 +132,6 @@ def get_initializer(name):
 def compl_mul1d(x, weights):
     # (batch, in_channel, x ), (in_channel, out_channel, x) -> (batch, out_channel, x)
     return torch.einsum("bix,iox->box", x, weights)
-
-
-# class Sparsemax(nn.Module):
-#     """Sparsemax function."""
-#
-#     def __init__(self, dim=None):
-#         """Initialize sparsemax activation
-#
-#         Args:
-#             dim (int, optional): The dimension over which to apply the sparsemax function.
-#         """
-#         super(Sparsemax, self).__init__()
-#
-#         self.dim = -1 if dim is None else dim
-#
-#     def forward(self, input):
-#         """Forward function.
-#         Args:
-#             input (torch.Tensor): Input tensor. First dimension should be the batch size
-#         Returns:
-#             torch.Tensor: [batch_size x number_of_logits] Output tensor
-#         """
-#         # Sparsemax currently only handles 2-dim tensors,
-#         # so we reshape to a convenient shape and reshape back after sparsemax
-#         input = input.transpose(0, self.dim)
-#         original_size = input.size()
-#         input = input.reshape(input.size(0), -1)
-#         input = input.transpose(0, 1)
-#         dim = 1
-#
-#         number_of_logits = input.size(dim)
-#
-#         # Translate input by max for numerical stability
-#         input = input - torch.max(input, dim=dim, keepdim=True)[0].expand_as(input)
-#
-#         # Sort input in descending order.
-#         # (NOTE: Can be replaced with linear time selection method described here:
-#         # http://stanford.edu/~jduchi/projects/DuchiShSiCh08.html)
-#         zs = torch.sort(input=input, dim=dim, descending=True)[0]
-#         range = torch.arange(start=1, end=number_of_logits + 1, step=1, device=device, dtype=input.dtype).view(1, -1)
-#         range = range.expand_as(zs)
-#
-#         # Determine sparsity of projection
-#         bound = 1 + range * zs
-#         cumulative_sum_zs = torch.cumsum(zs, dim)
-#         is_gt = torch.gt(bound, cumulative_sum_zs).type(input.type())
-#         k = torch.max(is_gt * range, dim, keepdim=True)[0]
-#
-#         # Compute threshold function
-#         zs_sparse = is_gt * zs
-#
-#         # Compute taus
-#         taus = (torch.sum(zs_sparse, dim, keepdim=True) - 1) / k
-#         taus = taus.expand_as(input)
-#
-#         # Sparsemax
-#         self.output = torch.max(torch.zeros_like(input), input - taus)
-#
-#         # Reshape back to original shape
-#         output = self.output
-#         output = output.transpose(0, 1)
-#         output = output.reshape(original_size)
-#         output = output.transpose(0, self.dim)
-#
-#         return output
-#
-#     def backward(self, grad_output):
-#         """Backward function."""
-#         dim = 1
-#
-#         nonzeros = torch.ne(self.output, 0)
-#         sum = torch.sum(grad_output * nonzeros, dim=dim) / torch.sum(nonzeros, dim=dim)
-#         self.grad_input = nonzeros * (grad_output - sum.expand_as(grad_output))
-#
-#         return self.grad_input
 
 
 class sparseKernelFT1d(nn.Module):
@@ -411,16 +291,16 @@ class MWT_CZ1d_cross(nn.Module):
         G1r[np.abs(G1r) < 1e-8] = 0
         self.max_item = 3
 
-        self.attn1 = FourierCrossAttention(in_channels=in_channels, out_channels=out_channels, seq_len_q=seq_len_q,
+        self.attn1 = FourierCrossAttentionW(in_channels=in_channels, out_channels=out_channels, seq_len_q=seq_len_q,
                                            seq_len_kv=seq_len_kv, modes=modes, activation=activation,
                                            mode_select_method=mode_select_method)
-        self.attn2 = FourierCrossAttention(in_channels=in_channels, out_channels=out_channels, seq_len_q=seq_len_q,
+        self.attn2 = FourierCrossAttentionW(in_channels=in_channels, out_channels=out_channels, seq_len_q=seq_len_q,
                                            seq_len_kv=seq_len_kv, modes=modes, activation=activation,
                                            mode_select_method=mode_select_method)
-        self.attn3 = FourierCrossAttention(in_channels=in_channels, out_channels=out_channels, seq_len_q=seq_len_q,
+        self.attn3 = FourierCrossAttentionW(in_channels=in_channels, out_channels=out_channels, seq_len_q=seq_len_q,
                                            seq_len_kv=seq_len_kv, modes=modes, activation=activation,
                                            mode_select_method=mode_select_method)
-        self.attn4 = FourierCrossAttention(in_channels=in_channels, out_channels=out_channels, seq_len_q=seq_len_q,
+        self.attn4 = FourierCrossAttentionW(in_channels=in_channels, out_channels=out_channels, seq_len_q=seq_len_q,
                                            seq_len_kv=seq_len_kv, modes=modes, activation=activation,
                                            mode_select_method=mode_select_method)
 
@@ -443,8 +323,8 @@ class MWT_CZ1d_cross(nn.Module):
         self.modes1 = modes
 
     def forward(self, q, k, v, mask=None):
-        B, N, H, E = q.shape  # (B, N, k)
-        _, S, _, _ = k.shape
+        B, N, H, E = q.shape  # (B, N, H, E) torch.Size([3, 768, 8, 2])
+        _, S, _, _ = k.shape  # (B, S, H, E) torch.Size([3, 96, 8, 2])
 
         q = q.view(q.shape[0], q.shape[1], -1)
         k = k.view(k.shape[0], k.shape[1], -1)

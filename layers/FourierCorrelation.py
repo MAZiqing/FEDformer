@@ -97,7 +97,7 @@ class FourierCrossAttention(nn.Module):
         xv = v.permute(0, 2, 3, 1)
 
         # Compute Fourier coefficients
-        xq_ft_ = torch.zeros(B, H, E, len(self.index_q)+1, device=xq.device, dtype=torch.cfloat)
+        xq_ft_ = torch.zeros(B, H, E, len(self.index_q), device=xq.device, dtype=torch.cfloat)
         xq_ft = torch.fft.rfft(xq, dim=-1)
         for i, j in enumerate(self.index_q):
             xq_ft_[:, :, :, i] = xq_ft[:, :, :, j]

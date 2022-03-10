@@ -15,18 +15,14 @@ from utils.masking import LocalMask
 from layers.utils import get_filter
 
 
-# from layers.FourierCorrelation import FourierBlock, # FourierCrossAttention
-
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 # ##
-class mwt_transform(nn.Module):
-    def __init__(self, ich=1, k=8, alpha=16, c=128, nCZ=1,
-                 L=0,
-                 base='legendre', attention_dropout=0.1):
-        super(mwt_transform, self).__init__()
+class MultiWaveletTransform(nn.Module):
+    def __init__(self, ich=1, k=8, alpha=16, c=128,
+                 nCZ=1, L=0, base='legendre', attention_dropout=0.1):
+        super(MultiWaveletTransform, self).__init__()
         print('base', base)
         self.k = k
         self.c = c
@@ -114,24 +110,8 @@ class FourierCrossAttentionW(nn.Module):
             out_ft[:, :, :, j] = xqkvw[:, :, :, i]
 
         out = torch.fft.irfft(out_ft / self.in_channels / self.out_channels, n=xq.size(-1)).permute(0, 3, 2, 1)
-        # raise Exception('aaa')
         # size = [B, L, H, E]
         return (out, None)
-
-
-def get_initializer(name):
-    if name == 'xavier_normal':
-        init_ = partial(nn.init.xavier_normal_)
-    elif name == 'kaiming_uniform':
-        init_ = partial(nn.init.kaiming_uniform_)
-    elif name == 'kaiming_normal':
-        init_ = partial(nn.init.kaiming_normal_)
-    return init_
-
-
-def compl_mul1d(x, weights):
-    # (batch, in_channel, x ), (in_channel, out_channel, x) -> (batch, out_channel, x)
-    return torch.einsum("bix,iox->box", x, weights)
 
 
 class sparseKernelFT1d(nn.Module):
@@ -148,6 +128,10 @@ class sparseKernelFT1d(nn.Module):
         self.weights1.requires_grad = True
         self.k = k
 
+    def compl_mul1d(self, x, weights):
+        # (batch, in_channel, x ), (in_channel, out_channel, x) -> (batch, out_channel, x)
+        return torch.einsum("bix,iox->box", x, weights)
+
     def forward(self, x):
         B, N, c, k = x.shape  # (B, N, c, k)
 
@@ -158,10 +142,11 @@ class sparseKernelFT1d(nn.Module):
         l = min(self.modes1, N // 2 + 1)
         # l = N//2+1
         out_ft = torch.zeros(B, c * k, N // 2 + 1, device=x.device, dtype=torch.cfloat)
-        out_ft[:, :, :l] = compl_mul1d(x_fft[:, :, :l], self.weights1[:, :, :l])
+        out_ft[:, :, :l] = self.compl_mul1d(x_fft[:, :, :l], self.weights1[:, :, :l])
         x = torch.fft.irfft(out_ft, n=N)
         x = x.permute(0, 2, 1).view(B, N, c, k)
         return x
+
 
 # ##
 class MWT_CZ1d(nn.Module):
@@ -169,7 +154,7 @@ class MWT_CZ1d(nn.Module):
                  k=3, alpha=64,
                  L=0, c=1,
                  base='legendre',
-                 initializer=get_initializer('xavier_normal'),
+                 initializer=None,
                  **kwargs):
         super(MWT_CZ1d, self).__init__()
 
@@ -263,16 +248,17 @@ class MWT_CZ1d(nn.Module):
         x[..., 1::2, :, :] = x_o
         return x
 
+
 # ##
-class MWT_CZ1d_cross(nn.Module):
+class MultiWaveletCross(nn.Module):
     def __init__(self, in_channels, out_channels, seq_len_q, seq_len_kv, modes, c=64,
                  k=8, ich=512,
                  L=0,
                  base='legendre',
                  mode_select_method='random',
-                 initializer=get_initializer('xavier_normal'), activation='tanh',
+                 initializer=None, activation='tanh',
                  **kwargs):
-        super(MWT_CZ1d_cross, self).__init__()
+        super(MultiWaveletCross, self).__init__()
         print('base', base)
 
         self.c = c

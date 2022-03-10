@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from layers.Embed import DataEmbedding, DataEmbedding_wo_pos
 from layers.AutoCorrelation import AutoCorrelation, AutoCorrelationLayer
 from layers.FourierCorrelation import FourierBlock, FourierCrossAttention
-from layers.MultiWaveletCorrelation import MWT_CZ1d_cross, mwt_transform
+from layers.MultiWaveletCorrelation import MultiWaveletCross, MultiWaveletTransform
 from layers.SelfAttention_Family import FullAttention, ProbAttention
 from layers.Autoformer_EncDec import Encoder, Decoder, EncoderLayer, DecoderLayer, my_Layernorm, series_decomp, series_decomp_multi
 import math
@@ -44,16 +44,16 @@ class Model(nn.Module):
                                                   configs.dropout)
 
         if configs.version == 'Wavelets':
-            encoder_self_att = mwt_transform(ich=configs.d_model, L=configs.L, base=configs.base)
-            decoder_self_att = mwt_transform(ich=configs.d_model, L=configs.L, base=configs.base)
-            decoder_cross_att = MWT_CZ1d_cross(in_channels=configs.d_model,
-                                               out_channels=configs.d_model,
-                                               seq_len_q=self.seq_len // 2 + self.pred_len,
-                                               seq_len_kv=self.seq_len,
-                                               modes=configs.modes,
-                                               ich=configs.d_model,
-                                               base=configs.base,
-                                               activation=configs.cross_activation)
+            encoder_self_att = MultiWaveletTransform(ich=configs.d_model, L=configs.L, base=configs.base)
+            decoder_self_att = MultiWaveletTransform(ich=configs.d_model, L=configs.L, base=configs.base)
+            decoder_cross_att = MultiWaveletCross(in_channels=configs.d_model,
+                                                  out_channels=configs.d_model,
+                                                  seq_len_q=self.seq_len // 2 + self.pred_len,
+                                                  seq_len_kv=self.seq_len,
+                                                  modes=configs.modes,
+                                                  ich=configs.d_model,
+                                                  base=configs.base,
+                                                  activation=configs.cross_activation)
         else:
             encoder_self_att = FourierBlock(in_channels=configs.d_model,
                                             out_channels=configs.d_model,
@@ -153,7 +153,7 @@ if __name__ == '__main__':
         cross_activation = 'tanh'
         seq_len = 96
         label_len = 48
-        pred_len = 720
+        pred_len = 96
         output_attention = True
         enc_in = 7
         dec_in = 7
@@ -173,6 +173,7 @@ if __name__ == '__main__':
     configs = Configs()
     model = Model(configs)
 
+    print('parameter number is {}'.format(sum(p.numel() for p in model.parameters())))
     enc = torch.randn([3, configs.seq_len, 7])
     enc_mark = torch.randn([3, configs.seq_len, 4])
 

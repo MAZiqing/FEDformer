@@ -5,12 +5,14 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn.parameter import Parameter
-from utils.masking import LocalMask
 
 
 def get_frequency_modes(seq_len, modes=64, mode_select_method='random'):
+    """
+    get modes on frequency domain:
+    'random' means sampling randomly;
+    'else' means sampling the lowest modes;
+    """
     modes = min(modes, seq_len//2)
     if mode_select_method == 'random':
         index = list(range(0, seq_len // 2))
@@ -28,8 +30,10 @@ class FourierBlock(nn.Module):
         super(FourierBlock, self).__init__()
         print('fourier enhanced block used!')
         """
-        1D Fourier layer. It does FFT, linear transform, and Inverse FFT.    
+        1D Fourier block. It performs representation learning on frequency domain, 
+        it does FFT, linear transform, and Inverse FFT.    
         """
+        # get modes on frequency domain
         self.index = get_frequency_modes(seq_len, modes=modes, mode_select_method=mode_select_method)
         print('modes={}, index={}'.format(modes, self.index))
 
@@ -44,63 +48,32 @@ class FourierBlock(nn.Module):
 
     def forward(self, q, k, v, mask):
         # size = [B, L, H, E]
-        k = k
-        v = v
-        mask = mask
         B, L, H, E = q.shape
         x = q.permute(0, 2, 3, 1)
-        # batchsize = B
-        # Compute Fourier coeffcients up to factor of e^(- something constant)
+        # Compute Fourier coefficients
         x_ft = torch.fft.rfft(x, dim=-1)
-        #out_ft = torch.zeros(B, H, E, L // 2 + 1, device=x.device, dtype=torch.cfloat)
-#         if len(self.index)==0:
-#             out_ft = torch.zeros(B, H, E, L // 2 + 1, device=x.device, dtype=torch.cfloat)
-#         else:
-#             out_ft = torch.zeros(B, H, E, len(self.index), device=x.device, dtype=torch.cfloat)
+        # Perform Fourier neural operations
         out_ft = torch.zeros(B, H, E, L // 2 + 1, device=x.device, dtype=torch.cfloat)
-
-        # Multiply relevant Fourier modes
-        # 取guided modes的版本
-        # print('x shape',x.shape)
-        # print('out_ft shape',out_ft.shape)
-        # print('x_ft shape',x_ft.shape)
-        # print('weight shape',self.weights1.shape)
-        # print('self index',self.index)
         for wi, i in enumerate(self.index):
             out_ft[:, :, :, wi] = self.compl_mul1d(x_ft[:, :, :, i], self.weights1[:, :, :, wi])
-
-        # 取topk的modes版本
-        # topk = torch.topk(torch.sum(x_ft, dim=[0, 1, 2]).abs(), dim=-1, k=self.modes1)
-        # energy = (topk[0]**2).sum()
-        # energy90 = 0
-        # for index, j in enumerate(topk[0]):
-        #     energy90 += j**2
-        #     if energy90 >= energy * 0.9:
-        #         break
-        # for i in topk[1][:index]:
-        #     out_ft[:, :, :, i] = self.compl_mul1d(x_ft[:, :, :, i], self.weights1[:, :, :, i])
-
-        # Return to physical space
+        # Return to time domain
         x = torch.fft.irfft(out_ft, n=x.size(-1))
-        #max_len = min(720,x.size(-1))
-        #x = torch.fft.irfft(out_ft, n=max_len)
-        # size = [B, L, H, E]
         return (x, None)
 
 
-# ########## Cross Fourier Former ####################
+# ########## Fourier Cross Former ####################
 class FourierCrossAttention(nn.Module):
     def __init__(self, in_channels, out_channels, seq_len_q, seq_len_kv, modes=64, mode_select_method='random',
                  activation='tanh', policy=0):
         super(FourierCrossAttention, self).__init__()
         print(' fourier enhanced cross attention used!')
-
         """
-        1D Fourier layer. It does FFT, linear transform, and Inverse FFT.    
+        1D Fourier Cross Attention layer. It does FFT, linear transform, attention mechanism and Inverse FFT.    
         """
         self.activation = activation
         self.in_channels = in_channels
         self.out_channels = out_channels
+        # get modes for queries and keys (& values) on frequency domain
         self.index_q = get_frequency_modes(seq_len_q, modes=modes, mode_select_method=mode_select_method)
         self.index_kv = get_frequency_modes(seq_len_kv, modes=modes, mode_select_method=mode_select_method)
 
@@ -118,23 +91,22 @@ class FourierCrossAttention(nn.Module):
 
     def forward(self, q, k, v, mask):
         # size = [B, L, H, E]
-        mask = mask
         B, L, H, E = q.shape
-        xq = q.permute(0, 2, 3, 1) # size = [B, H, E, L]
+        xq = q.permute(0, 2, 3, 1)  # size = [B, H, E, L]
         xk = k.permute(0, 2, 3, 1)
         xv = v.permute(0, 2, 3, 1)
 
-        # Compute Fourier coeffcients up to factor of e^(- something constant)
+        # Compute Fourier coefficients
         xq_ft_ = torch.zeros(B, H, E, len(self.index_q)+1, device=xq.device, dtype=torch.cfloat)
         xq_ft = torch.fft.rfft(xq, dim=-1)
         for i, j in enumerate(self.index_q):
             xq_ft_[:, :, :, i] = xq_ft[:, :, :, j]
-
         xk_ft_ = torch.zeros(B, H, E, len(self.index_kv), device=xq.device, dtype=torch.cfloat)
         xk_ft = torch.fft.rfft(xk, dim=-1)
         for i, j in enumerate(self.index_kv):
             xk_ft_[:, :, :, i] = xk_ft[:, :, :, j]
 
+        # perform attention mechanism on frequency domain
         xqk_ft = (torch.einsum("bhex,bhey->bhxy", xq_ft_, xk_ft_))
         if self.activation == 'tanh':
             xqk_ft = xqk_ft.tanh()
@@ -143,15 +115,13 @@ class FourierCrossAttention(nn.Module):
             xqk_ft = torch.complex(xqk_ft, torch.zeros_like(xqk_ft))
         else:
             raise Exception('{} actiation function is not implemented'.format(self.activation))
-
         xqkv_ft = torch.einsum("bhxy,bhey->bhex", xqk_ft, xk_ft_)
         xqkvw = torch.einsum("bhex,heox->bhox", xqkv_ft, self.weights1)
         out_ft = torch.zeros(B, H, E, L // 2 + 1, device=xq.device, dtype=torch.cfloat)
         for i, j in enumerate(self.index_q):
             out_ft[:, :, :, j] = xqkvw[:, :, :, i]
+        # Return to time domain
         out = torch.fft.irfft(out_ft / self.in_channels / self.out_channels, n=xq.size(-1))
-        # size = [B, L, H, E]
-
         return (out, None)
     
 

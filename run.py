@@ -47,12 +47,7 @@ parser.add_argument('--checkpoints', type=str, default='./checkpoints/', help='l
 parser.add_argument('--seq_len', type=int, default=96, help='input sequence length')
 parser.add_argument('--label_len', type=int, default=48, help='start token length')
 parser.add_argument('--pred_len', type=int, default=96, help='prediction sequence length')
-# parser.add_argument('--cross_activation', type=str, default='tanh',
-<<<<<<< HEAD
-                    # help='mwt cross atention activation function tanh or softmax')
-=======
-#                     help='mwt cross atention activation function tanh or softmax')
->>>>>>> 0af96fb7d64ebf0019e2a2bc80f5cbbd467f6b16
+# parser.add_argument('--cross_activation', type=str, default='tanh'
 
 # model define
 parser.add_argument('--enc_in', type=int, default=7, help='encoder input size')

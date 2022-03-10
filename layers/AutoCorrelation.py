@@ -1,13 +1,8 @@
 import time
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
 import numpy as np
 import math
-from math import sqrt
-import os
-# from pytorch_wavelets import DWTForward, DWTInverse, DWT1DForward, DWT1DInverse
 from torch.nn.functional import interpolate
 
 
@@ -38,36 +33,6 @@ class AutoCorrelation(nn.Module):
         self.dropout = nn.Dropout(attention_dropout)
         self.agg = None
         self.use_wavelet = configs.wavelet
-        # if self.use_wavelet:
-        #     J = 3
-        #     self.dwt1d = DWT1DForward(J=J, wave='db4')
-        #     self.dwt1div = DWT1DInverse(wave='db4')
-        #     self.j_list = [1, 2, 4, 8, 8]
-        #     print('DWTCorrelation used, J={}, j_list={}'.format(J, self.j_list))
-
-    # @decor_time
-    def time_delay_agg_mzq(self, values, corr):
-        head = values.shape[1]
-        channel = values.shape[2]
-        length = values.shape[3]
-        S = length
-        #  # else:
-        values = values.transpose(2, 3)
-        corr = corr.transpose(2, 3)
-        top_k = int(round(self.factor * np.log(S)))
-        # Rk = Rk.real
-        # if version == 3:
-        # V.size = [B, S, h]
-        # S = V.shape[1]
-        V_broad = torch.cat((values, values), dim=-2)  # size=[B, H, 2*S, h]
-        V_rolled = V_broad.unfold(-2, S, 1)  # size=[B, H, S+1, h, S]
-        # Rk.size = [B, S, h]
-        Rk_kthsmallest = torch.kthvalue(corr, k=S - top_k, dim=-2, keepdim=True)  # size=[B, H, 1, h]
-        mask = corr > torch.repeat_interleave(Rk_kthsmallest[0], repeats=S, dim=-2)
-        corr = torch.softmax(corr * mask, dim=-1)  # size = [B, H, S, h]
-        output = torch.einsum('beshi,besh->beih', V_rolled[:, :, 1:, :], corr)  # .transpose(1, 2)
-        # [B, H, S+1, h, S] * [B, H, S, h]
-        return output.transpose(2, 3)  # size=[batch, seq_len, h_dim]
 
     # @decor_time
     def time_delay_agg_training(self, values, corr):
@@ -166,8 +131,6 @@ class AutoCorrelation(nn.Module):
                 keys = keys.reshape([B, L, -1])
                 Ql, Qh_list = self.dwt1d(queries.transpose(1, 2))  # [B, H*D, L]
                 Kl, Kh_list = self.dwt1d(keys.transpose(1, 2))
-                # n = queries.shape[1]
-                # B = queries.shape[0]
                 qs = [queries.transpose(1, 2)] + Qh_list + [Ql]  # [B, H*D, L]
                 ks = [keys.transpose(1, 2)] + Kh_list + [Kl]
                 q_list = []
@@ -186,16 +149,11 @@ class AutoCorrelation(nn.Module):
 
             # time delay agg
             if self.training:
-                # if self.agg == 'thuml':
                 V = self.time_delay_agg_training(values.permute(0, 2, 3, 1).contiguous(), corr).permute(0, 3, 1, 2)  # [B, L, H, E], [B, H, E, L] -> [B, L, H, E]
-                # elif self.agg == 'mzq':
-                #     V = self.time_delay_agg_mzq(values.permute(0, 2, 3, 1).contiguous(), corr).permute(0, 3, 1, 2)
             else:
                 V = self.time_delay_agg_inference(values.permute(0, 2, 3, 1).contiguous(), corr).permute(0, 3, 1, 2)
-
         else:
             V_list = []
-            j_list = self.j_list
             queries = queries.reshape([B, L, -1])
             keys = keys.reshape([B, L, -1])
             values = values.reshape([B, L, -1])
@@ -262,35 +220,3 @@ class AutoCorrelationLayer(nn.Module):
 
         out = out.view(B, L, -1)
         return self.out_projection(out), attn
-
-
-if __name__ == '__main__':
-    class Configs(object):
-        wavelet = 2
-
-    configs = Configs()
-    B = 3
-    H = 2
-    S = 240
-    d = 16
-    x = torch.randn([B, S, H, d])
-    model1 = AutoCorrelation(configs=configs)
-    model1.training = 1
-    model1.factor = 3
-    # model1.agg = 'thuml'
-    #
-    # model2 = AutoCorrelation()
-    # model2.training = 1
-    # model2.factor = 3
-    # model2.agg = 'mzq'
-    out1 = model1.forward(x, x, x, 1)
-    # out2 = model2.forward(x, x, x, 1)
-    # diff = out1[0] - out2[0]
-
-    # for S in 96, 480, 2400:
-    #     print('========{}========='.format(S))
-    #     x = torch.randn([B, S, H, d])
-    #     for i in range(0, 3):
-    #         out1 = model1.forward(x, x, x, 1)
-    #         out2 = model2.forward(x, x, x, 1)
-    a = 1

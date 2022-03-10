@@ -16,7 +16,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Model(nn.Module):
     """
-    FEDformer projects the attention in frequency domain and achieved O(N) complexity
+    FEDformer performs the attention mechanism on frequency domain and achieved O(N) complexity
     """
     def __init__(self, configs):
         super(Model, self).__init__()

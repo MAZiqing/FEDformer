@@ -1,4 +1,4 @@
-# FEDformer (ICML 2022 under review)
+# FEDformer (ICML 2022 paper)
 
 
 Frequency Enhanced Decomposed
@@ -31,7 +31,14 @@ bash ./scripts/run_S.sh
 If you find this repo useful, please cite our paper. 
 
 ```
-xxxxx
+@inproceedings{zhou2022fedformer,
+  title={{FEDformer}: Frequency enhanced decomposed transformer for long-term series forecasting},
+  author={Zhou, Tian and Ma, Ziqing and Wen, Qingsong and Wang, Xue and Sun, Liang and Jin, Rong},
+  booktitle={Proc. 39th International Conference on Machine Learning (ICML 2022)},
+  location = {Baltimore, Maryland},
+  pages={},
+  year={2022}
+}
 ```
 
 ## Contact

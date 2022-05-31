@@ -1,5 +1,6 @@
 # FEDformer (ICML 2022 paper)
 
+Tian Zhou, Ziqing Ma, Qingsong Wen, Xue Wang, Liang Sun, Rong Jin, "FEDformer: Frequency Enhanced Decomposed Transformer for Long-term Series Forecasting," in Proc. 39th International Conference on Machine Learning (ICML 2022), Baltimore, Maryland, July 17-23, 2022
 
 Frequency Enhanced Decomposed
 Transformer (FEDformer) is more efficient than

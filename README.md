@@ -5,7 +5,7 @@ Tian Zhou, Ziqing Ma, Qingsong Wen, Xue Wang, Liang Sun, Rong Jin, "FEDformer: F
 Frequency Enhanced Decomposed
 Transformer (FEDformer) is more efficient than
 standard Transformer with a linear complexity
-to the sequence length. 
+to the sequence length [[paper](https://arxiv.org/abs/2201.12740)]. 
 
 Our empirical studies
 with six benchmark datasets show that compared
@@ -14,11 +14,24 @@ reduce prediction error by 14.8% and 22.6%
 for multivariate and univariate time series,
 respectively.
 
+## Frequency Enhanced Attention
+|![Figure1](https://user-images.githubusercontent.com/44238026/171341166-5df0e915-d876-481b-9fbe-afdb2dc47507.png)|
+|:--:| 
+| *Figure 1. Overall structure of FEDformer* |
+
+|![image](https://user-images.githubusercontent.com/44238026/171343471-7dd079f3-8e0e-442b-acc1-d406d4a3d86a.png) | ![image](https://user-images.githubusercontent.com/44238026/171343510-a203a1a1-db78-4084-8c36-62aa0c6c7ffe.png)
+|:--:|:--:|
+| *Figure 2. Frequency Enhanced Block (FEB)* | *Figure 3. Frequency Enhanced Attention (FEA)* |
+
+
+## Main Results
+![image](https://user-images.githubusercontent.com/44238026/171345192-e7440898-4019-4051-86e0-681d1a28d630.png)
+
 
 ## Get Started
 
 1. Install Python 3.6, PyTorch 1.9.0.
-2. Download data. You can obtain all the six benchmarks from xxxx.
+2. Download data. You can obtain all the six benchmarks from [[Autoformer](https://github.com/thuml/Autoformer)] or [[Informer](https://github.com/zhouhaoyi/Informer2020)].
 3. Train the model. We provide the experiment scripts of all benchmarks under the folder `./scripts`. You can reproduce the experiment results by:
 
 ```bash
@@ -44,7 +57,7 @@ If you find this repo useful, please cite our paper.
 
 ## Contact
 
-If you have any question or want to use the code, please contact xxx@xxxx .
+If you have any question or want to use the code, please contact tian.zt@alibaba-inc.com or maziqing.mzq@alibaba-inc.com .
 
 ## Acknowledgement
 

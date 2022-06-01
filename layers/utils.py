@@ -7,6 +7,7 @@ from functools import partial
 from scipy.special import eval_legendre
 from sympy import Poly, legendre, Symbol, chebyshevt
 
+
 def legendreDer(k, x):
     def _legendre(k, x):
         return (2*k+1) * eval_legendre(k, x)
@@ -15,9 +16,11 @@ def legendreDer(k, x):
         out += _legendre(i, x)
     return out
 
+
 def phi_(phi_c, x, lb = 0, ub = 1):
     mask = np.logical_or(x<lb, x>ub) * 1.0
     return np.polynomial.polynomial.Polynomial(phi_c)(x) * (1-mask)
+
 
 def get_phi_psi(k, base):
     
@@ -293,6 +296,7 @@ class UnitGaussianNormalizer(object):
         self.mean = self.mean.cpu()
         self.std = self.std.cpu()
 
+
 # normalization, Gaussian
 class GaussianNormalizer(object):
     def __init__(self, x, eps=0.00001):
@@ -358,7 +362,7 @@ class LpLoss(object):
     def abs(self, x, y):
         num_examples = x.size()[0]
 
-        #Assume uniform mesh
+        # Assume uniform mesh
         h = 1.0 / (x.size()[1] - 1.0)
 
         all_norms = (h**(self.d/self.p))*torch.norm(x.view(num_examples,-1) - y.view(num_examples,-1), self.p, 1)

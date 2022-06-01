@@ -1,22 +1,17 @@
+import os
+import time
+import warnings
+import numpy as np
+import torch
+import torch.nn as nn
+from torch import optim
 from data_provider.data_factory import data_provider
 from exp.exp_basic import Exp_Basic
 from models import FEDformer, Autoformer, Informer, Transformer
 from utils.tools import EarlyStopping, adjust_learning_rate, visual
 from utils.metrics import metric
 
-import numpy as np
-import torch
-import torch.nn as nn
-from torch import optim
 
-import os
-import time
-
-import warnings
-import matplotlib.pyplot as plt
-import numpy as np
-import io
-from scipy import stats
 warnings.filterwarnings('ignore')
 
 
@@ -30,10 +25,6 @@ class Exp_Main(Exp_Basic):
             'Autoformer': Autoformer,
             'Transformer': Transformer,
             'Informer': Informer,
-            # 'Reformer': Reformer,
-            # 'Logformer': Logformer,
-            # 'Transformer_sin':Transformer_sin,
-            # 'Autoformer_sin':Autoformer_sin,
         }
         model = model_dict[self.args.model].Model(self.args).float()
 
@@ -55,11 +46,7 @@ class Exp_Main(Exp_Basic):
 
     def vali(self, vali_data, vali_loader, criterion):
         total_loss = []
-        ks_test_96,ks_test_192,ks_test_336,ks_test_720,ks_test_96_back=[],[],[],[],[]
-        ks_result=[]
-        ks_test_96_raw,ks_test_192_raw,ks_test_336_raw,ks_test_720_raw,ks_test_96_back_raw=[],[],[],[],[]
         self.model.eval()
-        input_len=720
         with torch.no_grad():
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(vali_loader):
                 batch_x = batch_x.float().to(self.device)
@@ -92,76 +79,6 @@ class Exp_Main(Exp_Basic):
                 loss = criterion(pred, true)
 
                 total_loss.append(loss)
-
-#                 pred = outputs.detach().cpu().numpy()
-#                 true = batch_y.detach().cpu().numpy()
-#                 input_data = batch_x.detach().cpu().numpy()
-#                 input_len = input_data.shape[1]
-#                 for j in range(input_data.shape[0]):
-#                     ks_test_96_back.append(stats.kstest(pred[j,-96:,-1:].reshape(-1),input_data[j,:,-1:].reshape(-1)).pvalue)
-#                     ks_test_96.append(stats.kstest(pred[j,:96,-1:].reshape(-1),input_data[j,:,-1:].reshape(-1)).pvalue)
-#                     ks_test_192.append(stats.kstest(pred[j,:192,-1:].reshape(-1),input_data[j,:,-1:].reshape(-1)).pvalue)
-#                     ks_test_336.append(stats.kstest(pred[j,:336,-1:].reshape(-1),input_data[j,:,-1:].reshape(-1)).pvalue)
-#                     ks_test_720.append(stats.kstest(pred[j,:,-1:].reshape(-1),input_data[j,:,-1:].reshape(-1)).pvalue)
-                    
-#                     ks_test_96_back_raw.append(stats.kstest(true[j,-96:,-1:].reshape(-1),input_data[j,:,-1:].reshape(-1)).pvalue)
-#                     ks_test_96_raw.append(stats.kstest(true[j,:96,-1:].reshape(-1),input_data[j,:,-1:].reshape(-1)).pvalue)
-#                     ks_test_192_raw.append(stats.kstest(true[j,:192,-1:].reshape(-1),input_data[j,:,-1:].reshape(-1)).pvalue)
-#                     ks_test_336_raw.append(stats.kstest(true[j,:336,-1:].reshape(-1),input_data[j,:,-1:].reshape(-1)).pvalue)
-#                     ks_test_720_raw.append(stats.kstest(true[j,:,-1:].reshape(-1),input_data[j,:,-1:].reshape(-1)).pvalue)
-#                 if i==0:
-#                         pred = outputs.detach().cpu().numpy()
-#                         true = batch_y.detach().cpu().numpy()
-#                         input_data = batch_x.detach().cpu().numpy()
-#                         plt.cla()
-#                         plot_index1=np.arange(input_data.shape[1])
-#                         plot_index2=np.arange(input_data.shape[1],input_data.shape[1]+pred.shape[1])
-#                         plt.plot(plot_index1,input_data[0,:,-1:],label='input')
-#                         plt.plot(plot_index2,pred[0,:,-1:],label="predict")
-#                         plt.plot(plot_index2,true[0,:,-1:],label="true")
-                        
-#                         plt.legend()
-#                         #f = io.BytesIO()
-#                         plt.savefig(self.args.model+'_'+self.args.data+"_sample0.png",format="png")
-#                         #plt.clf()
-#                         plt.cla()
-#                         plt.plot(plot_index1,input_data[8,:,-1:],label='input')
-#                         plt.plot(plot_index2,pred[8,:,-1:],label="predict")
-#                         plt.plot(plot_index2,true[8,:,-1:],label="true")
-#                         plt.legend()
-#                         plt.savefig(self.args.model+'_'+self.args.data+"_sample1.png",format="png")
-                
-#         import pickle
-#         ks_result.append(ks_test_96_back)
-#         ks_result.append(ks_test_96)
-#         ks_result.append(ks_test_192)
-#         ks_result.append(ks_test_336)
-#         ks_result.append(ks_test_720)
-#         ks_result.append(ks_test_96_back_raw)
-#         ks_result.append(ks_test_96_raw)
-#         ks_result.append(ks_test_192_raw)
-#         ks_result.append(ks_test_336_raw)
-#         ks_result.append(ks_test_720_raw)
-#         with open(self.args.model+'_'+self.args.data+'_ks_test.pkl','wb') as f:
-#             pickle.dump(ks_result,f)
-#         print('mean ks 96 back',np.mean(ks_test_96_back))
-#         print('mean ks 96 ',np.mean(ks_test_96))
-#         print('mean ks 192 ',np.mean(ks_test_192))
-#         print('mean ks 336 ',np.mean(ks_test_336))
-#         print('mean ks 720 ',np.mean(ks_test_720))
-        
-#         print('mean raw ks 96 back',np.mean(ks_test_96_back_raw))
-#         print('mean raw ks 96 ',np.mean(ks_test_96_raw))
-#         print('mean raw ks 192 ',np.mean(ks_test_192_raw))
-#         print('mean raw ks 336 ',np.mean(ks_test_336_raw))
-#         print('mean raw ks 720 ',np.mean(ks_test_720_raw))
-        
-#         print('mean ks relative 96 back',np.mean(ks_test_96_back)/np.mean(ks_test_96_back_raw))
-#         print('mean ks relative 96 ',np.mean(ks_test_96)/np.mean(ks_test_96_raw))
-#         print('mean ks relative 192 ',np.mean(ks_test_192)/np.mean(ks_test_192_raw))
-#         print('mean ks relative 336 ',np.mean(ks_test_336)/np.mean(ks_test_336_raw))
-#         print('mean ks relative 720 ',np.mean(ks_test_720)/np.mean(ks_test_720_raw))
-#         raise Exception('aaa')
         total_loss = np.average(total_loss)
         self.model.train()
         return total_loss
@@ -225,34 +142,7 @@ class Exp_Main(Exp_Basic):
 
                     f_dim = -1 if self.args.features == 'MS' else 0
                     batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
-                    
-#                     if i==0:
-#                         from scipy import stats
-#                         pred = outputs.detach().cpu().numpy()
-#                         true = batch_y.detach().cpu().numpy()
-#                         input_data = batch_x.detach().cpu().numpy()
-#                         plot_index1=np.arange(input_data.shape[1])
-#                         plot_index2=np.arange(input_data.shape[1],input_data.shape[1]+pred.shape[1])
-#                         plt.cla()
-#                         plt.plot(plot_index1,input_data[0,:,-1:],label='input')
-#                         plt.plot(plot_index2,pred[0,:,-1:],label="predict")
-#                         plt.plot(plot_index2,true[0,:,-1:],label="true")
-#                         print('KS test1',stats.kstest(input_data[0,:,-1:].reshape(-1),pred[0,-input_data.shape[1]:,-1:].reshape(-1)))
-                        
-#                         plt.legend()
-#                         #f = io.BytesIO()
-#                         plt.savefig("sample0.png",format="png")
-#                         #plt.clf()
-#                         plt.cla()
-#                         plt.plot(plot_index1,input_data[8,:,-1:],label='input')
-#                         plt.plot(plot_index2,pred[8,:,-1:],label="predict")
-#                         plt.plot(plot_index2,true[8,:,-1:],label="true")
-#                         plt.legend()
-#                         plt.savefig("sample1.png",format="png")
-#                         print('KS test2',stats.kstest(input_data[8,:,-1:].reshape(-1),pred[8,-input_data.shape[1]:,-1:].reshape(-1)))
-#                         raise Exception('aaa')
-                    
-                    
+
                     loss = criterion(outputs, batch_y)
                     train_loss.append(loss.item())
 

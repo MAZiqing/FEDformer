@@ -11,7 +11,6 @@ class Exp_Basic(object):
 
     def _build_model(self):
         raise NotImplementedError
-        return None
 
     def _acquire_device(self):
         if self.args.use_gpu:
@@ -24,14 +23,14 @@ class Exp_Basic(object):
             print('Use CPU')
         return device
 
-    def _get_data(self):
+    def _get_data(self, *args, **kwargs):
         pass
 
-    def vali(self):
+    def vali(self, *args, **kwargs):
         pass
 
-    def train(self):
+    def train(self, *args, **kwargs):
         pass
 
-    def test(self):
+    def test(self, *args, **kwargs):
         pass

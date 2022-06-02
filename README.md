@@ -55,6 +55,12 @@ If you find this repo useful, please cite our paper.
 }
 ```
 
+## Further Reading
+Survey on Transformers in Time Series:
+
+Qingsong Wen, Tian Zhou, Chaoli Zhang, Weiqi Chen, Ziqing Ma, Junchi Yan, and Liang Sun. "Transformers in time series: A survey." arXiv preprint arXiv:2202.07125 (2022). [paper](https://arxiv.org/abs/2202.07125)
+
+
 ## Contact
 
 If you have any question or want to use the code, please contact tian.zt@alibaba-inc.com or maziqing.mzq@alibaba-inc.com .

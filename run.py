@@ -15,7 +15,7 @@ parser = argparse.ArgumentParser(description='Autoformer & Transformer family fo
 # basic config
 parser.add_argument('--is_training', type=int, default=1, help='status')
 parser.add_argument('--task_id', type=str, default='test', help='task id')
-parser.add_argument('--model', type=str, default='Reformer',
+parser.add_argument('--model', type=str, default='FEDformer',
                     help='model name, options: [FEDformer, Autoformer, Informer, Transformer]')
 
 # supplementary config for FEDformer model

@@ -11,6 +11,4 @@ scikit-learn==1.0.2
 scipy==1.7.3
 statsmodels==0.13.2
 sympy==1.11.1
-torch==1.12.1
-torchmetrics==0.10.0
-torchvision==0.13.1
+torch==1.9.0

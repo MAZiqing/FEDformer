@@ -1,0 +1,16 @@
+absl-py==1.2.0
+einops==0.4.1
+h5py==3.7.0
+keopscore==2.1
+opt-einsum==3.3.0
+pandas==1.4.2
+pytorch-wavelets 
+PyWavelets==1.4.1
+scikit-image==0.19.3
+scikit-learn==1.0.2
+scipy==1.7.3
+statsmodels==0.13.2
+sympy==1.11.1
+torch==1.12.1
+torchmetrics==0.10.0
+torchvision==0.13.1

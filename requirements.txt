@@ -3,8 +3,8 @@ einops==0.4.1
 h5py==3.7.0
 keopscore==2.1
 opt-einsum==3.3.0
-pandas==1.4.2
-pytorch-wavelets 
+pandas
+pytorch-wavelet 
 PyWavelets==1.4.1
 scikit-image==0.19.3
 scikit-learn==1.0.2

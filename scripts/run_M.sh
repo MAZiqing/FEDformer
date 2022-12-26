@@ -38,7 +38,7 @@ python -u run.py \
   --task_id ETTh1 \
   --model $model \
   --data ETTh1 \
-  --features S \
+  --features  \
   --seq_len 96 \
   --label_len 48 \
   --pred_len $preLen \

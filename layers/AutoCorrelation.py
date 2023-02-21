@@ -32,7 +32,7 @@ class AutoCorrelation(nn.Module):
         self.output_attention = output_attention
         self.dropout = nn.Dropout(attention_dropout)
         self.agg = None
-        self.use_wavelet = configs.wavelet
+        # self.use_wavelet = configs.wavelet
 
     # @decor_time
     def time_delay_agg_training(self, values, corr):
@@ -124,65 +124,19 @@ class AutoCorrelation(nn.Module):
             keys = keys[:, :L, :, :]
 
         # period-based dependencies
-        if self.use_wavelet != 2:
-            if self.use_wavelet == 1:
-                j_list = self.j_list
-                queries = queries.reshape([B, L, -1])
-                keys = keys.reshape([B, L, -1])
-                Ql, Qh_list = self.dwt1d(queries.transpose(1, 2))  # [B, H*D, L]
-                Kl, Kh_list = self.dwt1d(keys.transpose(1, 2))
-                qs = [queries.transpose(1, 2)] + Qh_list + [Ql]  # [B, H*D, L]
-                ks = [keys.transpose(1, 2)] + Kh_list + [Kl]
-                q_list = []
-                k_list = []
-                for q, k, j in zip(qs, ks, j_list):
-                    q_list += [interpolate(q, scale_factor=j, mode='linear')[:, :, -L:]]
-                    k_list += [interpolate(k, scale_factor=j, mode='linear')[:, :, -L:]]
-                queries = torch.stack([i.reshape([B, H, E, L]) for i in q_list], dim=3).reshape([B, H, -1, L]).permute(0, 3, 1, 2)
-                keys = torch.stack([i.reshape([B, H, E, L]) for i in k_list], dim=3).reshape([B, H, -1, L]).permute(0, 3, 1, 2)
-            else:
-                pass
-            q_fft = torch.fft.rfft(queries.permute(0, 2, 3, 1).contiguous(), dim=-1)  # size=[B, H, E, L]
-            k_fft = torch.fft.rfft(keys.permute(0, 2, 3, 1).contiguous(), dim=-1)
-            res = q_fft * torch.conj(k_fft)
-            corr = torch.fft.irfft(res, dim=-1) # size=[B, H, E, L]
+        q_fft = torch.fft.rfft(queries.permute(0, 2, 3, 1).contiguous(), dim=-1)
+        k_fft = torch.fft.rfft(keys.permute(0, 2, 3, 1).contiguous(), dim=-1)
+        res = q_fft * torch.conj(k_fft)
+        corr = torch.fft.irfft(res, dim=-1)
 
-            # time delay agg
-            if self.training:
-                V = self.time_delay_agg_training(values.permute(0, 2, 3, 1).contiguous(), corr).permute(0, 3, 1, 2)  # [B, L, H, E], [B, H, E, L] -> [B, L, H, E]
-            else:
-                V = self.time_delay_agg_inference(values.permute(0, 2, 3, 1).contiguous(), corr).permute(0, 3, 1, 2)
+        # time delay agg
+        if self.training:
+            V = self.time_delay_agg_training(values.permute(0, 2, 3, 1).contiguous(), corr).permute(0, 3, 1, 2)
         else:
-            V_list = []
-            queries = queries.reshape([B, L, -1])
-            keys = keys.reshape([B, L, -1])
-            values = values.reshape([B, L, -1])
-            Ql, Qh_list = self.dwt1d(queries.transpose(1, 2))  # [B, H*D, L]
-            Kl, Kh_list = self.dwt1d(keys.transpose(1, 2))
-            Vl, Vh_list = self.dwt1d(values.transpose(1, 2))
-            qs = Qh_list + [Ql]  # [B, H*D, L]
-            ks = Kh_list + [Kl]
-            vs = Vh_list + [Vl]
-            for q, k, v in zip(qs, ks, vs):
-                q = q.reshape([B, H, E, -1])
-                k = k.reshape([B, H, E, -1])
-                v = v.reshape([B, H, E, -1]).permute(0, 3, 1, 2)
-                q_fft = torch.fft.rfft(q.contiguous(), dim=-1)
-                k_fft = torch.fft.rfft(k.contiguous(), dim=-1)
-                res = q_fft * torch.conj(k_fft)
-                corr = torch.fft.irfft(res, dim=-1)  # [B, H, E, L]
-                if self.training:
-                    V = self.time_delay_agg_training(v.permute(0, 2, 3, 1).contiguous(), corr).permute(0, 3, 1, 2)
-                else:
-                    V = self.time_delay_agg_inference(v.permute(0, 2, 3, 1).contiguous(), corr).permute(0, 3, 1, 2)
-                V_list += [V]
-            Vl = V_list[-1].reshape([B, -1, H*E]).transpose(1, 2)
-            Vh_list = [i.reshape([B, -1, H*E]).transpose(1, 2) for i in V_list[:-1]]
-            V = self.dwt1div((Vl, Vh_list)).reshape([B, H, E, -1]).permute(0, 3, 1, 2)
-            # corr = self.dwt1div((V_list[-1], V_list[:-1]))
+            V = self.time_delay_agg_inference(values.permute(0, 2, 3, 1).contiguous(), corr).permute(0, 3, 1, 2)
 
         if self.output_attention:
-            return (V.contiguous(), corr.permute(0, 3, 1, 2))  # size = [B, L, H, E]
+            return (V.contiguous(), corr.permute(0, 3, 1, 2))
         else:
             return (V.contiguous(), None)
 

@@ -25,7 +25,10 @@ class Model(nn.Module):
 
         # Decomp
         kernel_size = configs.moving_avg
-        self.decomp = series_decomp(kernel_size)
+        if isinstance(kernel_size, list):
+            self.decomp = series_decomp(kernel_size[0])
+        else:
+            self.decomp = series_decomp(kernel_size)
 
         # Embedding
         # The series-wise connection inherently contains the sequential information.

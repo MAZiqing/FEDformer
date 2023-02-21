@@ -30,9 +30,9 @@ respectively.
 
 ## Get Started
 
-1. Install Python 3.6, PyTorch 1.9.0.
+1. Install Python>=3.8, PyTorch 1.9.0.
 2. Download data. You can obtain all the six benchmarks from [[Autoformer](https://github.com/thuml/Autoformer)] or [[Informer](https://github.com/zhouhaoyi/Informer2020)].
-3. Train the model. We provide the experiment scripts of all benchmarks under the folder `./scripts`. You can reproduce the experiment results by:
+3. Train the model. We provide the experiment scripts of all benchmarks under the folder `./scripts`. You can reproduce the multivariate and univariate experiment results by running the following shell code separately:
 
 ```bash
 bash ./scripts/run_M.sh

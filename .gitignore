@@ -1,2 +1,7 @@
 /dataset
+/checkpoints
+/results
+/test_results
+/.vscode
+result.txt
 *.pyc

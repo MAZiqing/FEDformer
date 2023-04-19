@@ -108,7 +108,7 @@ class EncoderLayer(nn.Module):
             attn_mask=attn_mask
         )
         x = x + self.dropout(new_x)
-        x, _ = self.decomp1(x)
+        x, _ = self.decomp1(x) # seasonal init
         y = x
         y = self.dropout(self.activation(self.conv1(y.transpose(-1, 1))))
         y = self.dropout(self.conv2(y).transpose(-1, 1))

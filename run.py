@@ -230,6 +230,7 @@ def main():
             torch.cuda.empty_cache()
     else:
         ii = 0
+
         setting = "{}_{}_{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_el{}_dl{}_df{}_fc{}_eb{}_dt{}_{}_{}".format(
             args.model_id,
             args.model,
@@ -249,6 +250,7 @@ def main():
             args.des,
             ii,
         )
+
 
         exp = Exp(args)  # set experiments
         print(">>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<".format(setting))

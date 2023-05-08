@@ -38,7 +38,7 @@ python -u run.py \
   --task_id ETTh1 \
   --model $model \
   --data ETTh1 \
-  --features  \
+  --features M \
   --seq_len 96 \
   --label_len 48 \
   --pred_len $preLen \
@@ -125,7 +125,7 @@ python -u run.py \
  --task_id Exchange \
  --model $model \
  --data custom \
- --features S \
+ --features M \
  --seq_len 96 \
  --label_len 48 \
  --pred_len $preLen \
@@ -146,7 +146,7 @@ python -u run.py \
  --task_id traffic \
  --model $model \
  --data custom \
- --features S \
+ --features M \
  --seq_len 96 \
  --label_len 48 \
  --pred_len $preLen \
@@ -168,7 +168,7 @@ python -u run.py \
  --task_id weather \
  --model $model \
  --data custom \
- --features S \
+ --features M \
  --seq_len 96 \
  --label_len 48 \
  --pred_len $preLen \
@@ -193,7 +193,7 @@ python -u run.py \
  --task_id ili \
  --model $model \
  --data custom \
- --features S \
+ --features M \
  --seq_len 36 \
  --label_len 18 \
  --pred_len $preLen \
